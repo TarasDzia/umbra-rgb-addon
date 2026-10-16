@@ -1,0 +1,9 @@
+{
+  "marshal_version": 4,
+  "payload_sha256": "bce3872cad80bebc60b666a594a5cb6cfd15f3d8a0ef35718e7dbee8279135e2",
+  "python": [
+    3,
+    8
+  ],
+  "source_sha256": "a6ee0d0f5ce0e9ef35ecfd8ce00cb24926ece2bcd1e9c0fddd5feee81689b895"
+}

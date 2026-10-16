@@ -1,0 +1,26 @@
+{
+  "files": {
+    ".gitattributes": "d60f352d0db1404c70afb4bb8b2ca3fd1c610572aa40720e8a0b7baa7885418c",
+    ".github/ISSUE_TEMPLATE/bug_report.yml": "9b4dbc53cbcdf18e91fc919301498d6e73ce00867287f3675201f0b149528af0",
+    ".gitignore": "c4ec3ef511f79e1f98f279a457ae62f81556674d3958be458c9bc06dd4481a15",
+    "CHANGELOG.md": "7e638aaf6ac431874ed656236eda06300ef4616392fd548c6891ec1bb18b2a83",
+    "LICENSE": "24dc5100f899c933131ece9287535197c840d5f067571554e5c026034e2b6251",
+    "README.md": "bbe8c6ffff70c3f8275cc0199a6104ae75730c3b57ecfe1e547cc2b040632ae2",
+    "README.uk.md": "26308d7c7747ef6c9b9e0c869a675d06e2a5cac9d333f467f2517223d313cdf8",
+    "VERIFICATION.md": "e7927c2ca8fb63b43325db13d617aad4fd35b63466f138f274b583a7c581d502",
+    "bootstrap.py": "a6ee0d0f5ce0e9ef35ecfd8ce00cb24926ece2bcd1e9c0fddd5feee81689b895",
+    "bootstrap38.b64": "f040553f66b3554d12746b6eaf1ec2a2ef0841c578ddb6aa901aa28aaab9d7c8",
+    "bootstrap38.json": "904187d3a5af5b773c7fdd30137354755ed47b9cd3240a3d5252dcc92e20c525",
+    "install.ps1": "1239811e24aefee1eda3a86d74e19aaf2915d2a1b5274c3a3370bbc88f450b96",
+    "patcher.py": "a3e353aa734b826ec1bdc049e9ccbee13f7213046690109e01c6ab0c19062fb1",
+    "payload/jonsbo_compatibility.py": "d43a9287854a14db0cfe2ad237e2eb2acae73a7f1e472b5c2c5e0124eccef2c8",
+    "payload/umbra_rgb_diagnostic_hook.py": "37dd8ca58c68db2bb54707dae199c5bcddab9bd4c5d05a9d1b7f037e2b356c43",
+    "tests/test_hook.py": "242fba702ec79dbaf31d6f82e2c6c737796b5c7523b5dd690dab7518d4070e12",
+    "tests/test_patcher.py": "7271ceaff13fee8c9ba54818b98ccc8c849d31c645f922358ab8dfabc09070ae",
+    "tests/test_profile.py": "557d894cac981f27f8d32859779b6b80208d9ba3bf3a0568a531f1268e77d95d",
+    "tools/build_bootstrap38.py": "55a9aaba2a403092a233013e3121f1971536bce472474a59c3ecce96f99b9fef",
+    "tools/build_source_release.py": "a3a3df1c78effff310101de470f4bc0847cacba306f21a6dfd8632c97827cedf"
+  },
+  "scope": "authored-addon-only; no vendor runtime",
+  "version": "0.1.0"
+}

@@ -1,0 +1,39 @@
+name: Bug report
+description: Report an add-on installation or RGB behavior problem.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not attach vendor executables, runtime folders, firmware images, or unreviewed personal logs/profiles.
+  - type: input
+    id: addon-version
+    attributes:
+      label: Add-on version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: original-application
+    attributes:
+      label: Original Umbra version and executable SHA-256
+      description: Include the patcher's inspect result, with personal paths removed.
+    validations:
+      required: true
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Controller and ARGB device
+      description: Controller VID/PID, firmware version, ARGB device model, and physical port.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+      description: Include reproduction steps, saved LED count, active reported count if available, and what changed after a PC restart.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error text or relevant log excerpt
+      description: Review the excerpt first and remove personal paths, device identifiers, and unrelated data.

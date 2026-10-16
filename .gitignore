@@ -1,0 +1,33 @@
+# Python and local development
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local build/installation output: contains vendor runtime, never publish it
+/build/
+/dist/
+/installed/
+/runtime/
+/vendor-runtime/
+/Umbra-RGB-Addon/
+*.exe
+*.dll
+*.pyd
+*.marshal
+*.bin
+*.hex
+*.zip
+
+# Personal state and diagnostics
+*.jsonl
+*.log
+*profile*.json
+*configuration-result*.json
