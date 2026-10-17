@@ -1,4 +1,4 @@
-"""Create a source-only release from an explicit list of authored files."""
+"""Create a source release from explicit code, docs and attributed icon files."""
 import argparse
 import hashlib
 import json
@@ -14,11 +14,15 @@ from patcher import VERSION, load_bootstrap
 # New runtime files can never enter a release by recursive directory scanning.
 FILES = (
     ".gitattributes", ".gitignore", "LICENSE", "README.md", "README.uk.md",
-    "CHANGELOG.md", "VERIFICATION.md", "patcher.py", "install.ps1", "bootstrap.py",
+    "CHANGELOG.md", "VERIFICATION.md", "THIRD-PARTY-NOTICES.md",
+    "patcher.py", "installer_service.py", "installer_gui.py", "install.ps1", "bootstrap.py",
     "bootstrap38.b64", "bootstrap38.json",
     "payload/umbra_rgb_diagnostic_hook.py", "payload/jonsbo_compatibility.py",
     "tests/test_profile.py", "tests/test_hook.py", "tests/test_patcher.py",
+    "tests/test_installer_service.py", "tests/test_installer_gui.py", "requirements-build.txt",
+    "assets/umbra.ico", "assets/README.md",
     "tools/build_bootstrap38.py", "tools/build_source_release.py",
+    "tools/build_windows_installer.py",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
 )
 
@@ -33,7 +37,7 @@ def main():
         parser.error("Output exists; pass --force to replace this source release")
     load_bootstrap()  # Refuse a stale or mismatched authored bootstrap.
     contents = {name: (ROOT / name).read_bytes() for name in FILES}
-    manifest = {"version": VERSION, "scope": "authored-addon-only; no vendor runtime",
+    manifest = {"version": VERSION, "scope": "authored add-on plus attributed brand icon; no vendor runtime",
                 "files": {name: hashlib.sha256(data).hexdigest()
                           for name, data in contents.items()}}
     contents["RELEASE-MANIFEST.json"] = (
@@ -53,7 +57,7 @@ def main():
     digest = hashlib.sha256(args.output.read_bytes()).hexdigest()
     args.output.with_suffix(args.output.suffix + ".sha256").write_text(
         digest + "  " + args.output.name + "\n", encoding="utf-8")
-    print("Verified %d authored files: %s" % (len(contents), args.output))
+    print("Verified %d release files: %s" % (len(contents), args.output))
     print("SHA256", digest)
 
 

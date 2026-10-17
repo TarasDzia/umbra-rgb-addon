@@ -16,7 +16,7 @@ import sys
 import zlib
 
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 SUPPORTED_SHA256 = "974f28ff684091520bb742cf4a24dabd726c483b08094ded871ab87f90ab5e25"
 SUPPORTED_VERSION = "V3.5.5_09.03"
 SOURCE_EXE = "Sync_light.exe"
@@ -48,6 +48,16 @@ class Archive:
     entries: tuple
     python_version: int
     library: bytes
+
+
+@dataclass(frozen=True)
+class PreparedInstall:
+    source: Path
+    destination: Path
+    original_data: bytes
+    patched_data: bytes
+    original_main: bytes
+    payloads: dict
 
 
 def sha256(data):
@@ -151,8 +161,8 @@ def verified_source(source):
     return data
 
 
-def load_bootstrap(folder=ROOT):
-    folder = Path(folder)
+def load_bootstrap(folder=None):
+    folder = ROOT if folder is None else Path(folder)
     metadata = json.loads((folder / "bootstrap38.json").read_text(encoding="utf-8"))
     if (not isinstance(metadata, dict) or metadata.get("python") != [3, 8]
             or metadata.get("marshal_version") != 4):
@@ -190,26 +200,73 @@ def _check_runtime_tree(source):
                 raise PatchError("Linked runtime entries are not supported: " + str(path))
 
 
-def install_addon(source, destination):
-    source, destination = Path(source).resolve(), Path(destination).resolve()
-    if destination.exists():
+def _plain_path(path, label):
+    """Reject links before resolve() can hide them, including parent junctions."""
+    path = Path(os.path.abspath(os.path.expanduser(str(path))))
+    for candidate in (path, *path.parents):
+        try:
+            info = candidate.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise PatchError("Cannot inspect %s path: %s" % (label, candidate)) from error
+        if candidate.is_symlink() or getattr(info, "st_file_attributes", 0) & 0x400:
+            raise PatchError("Linked %s paths are not supported: %s" % (label, candidate))
+    return path.resolve()
+
+
+def preflight_install(source, destination, require_parent=True):
+    """Validate every input and prepare output bytes without writing any files."""
+    source = _plain_path(source, "source")
+    destination = _plain_path(destination, "destination")
+    if os.path.lexists(str(destination)):
         raise PatchError("Destination already exists; choose a new folder")
     if destination == source or source in destination.parents or destination in source.parents:
         raise PatchError("Source and destination must be disjoint")
-    if destination == ROOT or ROOT in destination.parents:
+    resource_root = ROOT.resolve()
+    if (destination == resource_root or resource_root in destination.parents
+            or destination in resource_root.parents):
         raise PatchError("Keep generated vendor files outside the add-on source folder")
-    if not destination.parent.is_dir():
+    if require_parent and not destination.parent.is_dir():
         raise PatchError("Destination parent folder must already exist")
+    ancestor = destination.parent
+    while not ancestor.exists():
+        ancestor = ancestor.parent
+    if not ancestor.is_dir():
+        raise PatchError("Destination parent must be a folder")
+    _plain_path(source / SOURCE_EXE, "source executable")
     data = verified_source(source)
     missing = [name for name in REQUIRED_RUNTIME
                if not ((source / name).is_file() if name.endswith((".dll", ".zip"))
                        else (source / name).is_dir())]
     if missing:
         raise PatchError("Source is missing runtime files: " + ", ".join(missing))
+    for name in ("bootstrap.py", "bootstrap38.b64", "bootstrap38.json"):
+        _plain_path(ROOT / name, "add-on resource")
+    for name in PAYLOAD_FILES:
+        _plain_path(ROOT / "payload" / name, "add-on resource")
     bootstrap = load_bootstrap()
     payloads = {name: (ROOT / "payload" / name).read_bytes() for name in PAYLOAD_FILES}
     _check_runtime_tree(source)
     patched, original = repack_archive(data, bootstrap)
+    return PreparedInstall(source, destination, data, patched, original, payloads)
+
+
+def install_addon(source, destination, progress=None, create_parent=False):
+    """Install only after full preflight; optional parent creation is for the GUI."""
+    def report(stage, message):
+        if progress is not None:
+            progress(stage, message)
+
+    report("validate", "Checking the original application and add-on files")
+    prepared = preflight_install(source, destination, require_parent=not create_parent)
+    source, destination = prepared.source, prepared.destination
+    data, patched = prepared.original_data, prepared.patched_data
+    report("copy", "Copying the locally installed Umbra runtime")
+    if create_parent:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        # Check again after parent creation, before exclusive output creation.
+        _plain_path(destination, "destination")
     destination.mkdir()  # Exclusive creation; never overwrite existing output.
     for path in source.iterdir():
         if _excluded(path):
@@ -220,18 +277,20 @@ def install_addon(source, destination):
                             ignore=lambda parent, names: [n for n in names if _excluded(Path(n))])
         else:
             shutil.copy2(str(path), str(target))
-    for name, payload in payloads.items():
+    report("patch", "Adding the RGB add-on to the separate application copy")
+    for name, payload in prepared.payloads.items():
         (destination / name).write_bytes(payload)
-    (destination / "Sync_light.original.marshal").write_bytes(original)
+    (destination / "Sync_light.original.marshal").write_bytes(prepared.original_main)
     (destination / OUTPUT_EXE).write_bytes(patched)
     manifest = {"addon_version": VERSION, "vendor_version": SUPPORTED_VERSION,
                 "source_sha256": sha256(data), "patched_sha256": sha256(patched),
-                "payload_sha256": {name: sha256(payload) for name, payload in payloads.items()},
+                "payload_sha256": {name: sha256(payload) for name, payload in prepared.payloads.items()},
                 "rgb_only": True, "manual_port": 1, "count_written_to_hub": False}
     (destination / "addon-install.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if (source / SOURCE_EXE).read_bytes() != data:
         raise PatchError("Original executable changed concurrently; do not use this output")
+    report("complete", "The separate application copy is ready")
     return manifest
 
 
