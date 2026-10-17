@@ -24,7 +24,7 @@ There is no device-brand emulation: a JONSBO device does not need to identify it
 
 | Item | Current scope |
 | --- | --- |
-| Operating system | Windows |
+| Operating system | Windows; standalone setup for **x64** |
 | Original application | AsiaHorse Umbra **V3.5.5_09.03** |
 | Original executable | `Sync_light.exe`, exact SHA-256 below |
 | Tested controller | USB VID `1A86`, PID `FE04` |
@@ -40,29 +40,25 @@ Supported original executable SHA-256:
 
 The installer refuses an unrecognized executable. A matching version label alone is not enough. Other ports, controllers, firmware versions, and vendor updates are outside the verified scope.
 
+The physical confirmation was for the original private compatibility build. Public package checks are documented separately in [VERIFICATION.md](VERIFICATION.md); an installer check does not verify physical RGB behavior.
+
 The successful local setup saved **7** before the PC restart. That is an observation for one device, not a default or a recommended count for every tower. The post-restart active count was not retained in telemetry. This public package does **not** preselect 7 or 24.
 
 ## Install
 
-You need your own installation of the supported Umbra version, including `Sync_light.exe` and its runtime files, plus **Python 3.8 or newer** for the patcher. You do not need to install Python 3.8 specifically: the patcher can run under a newer Python while the generated application keeps the vendor's bundled Python 3.8 runtime.
+Download **[Umbra-RGB-Addon-Setup-0.2.0.exe](https://github.com/TarasDzia/umbra-rgb-addon/releases/download/v0.2.0/Umbra-RGB-Addon-Setup-0.2.0.exe)** from the [0.2.0 release](https://github.com/TarasDzia/umbra-rgb-addon/releases/tag/v0.2.0). **You do not need to install Python or use PowerShell.** You still need your own installation of the supported Umbra version, with `Sync_light.exe` and its supporting runtime files.
 
-1. Download and extract this project's source package.
-2. Close Umbra and other RGB programs that control the same hub.
-3. Open PowerShell in the extracted project folder and inspect your installation:
+1. Close Umbra and other RGB programs that control the same hub.
+2. Run the setup EXE and select the original Umbra folder containing `Sync_light.exe`.
+3. Choose a **new, separate destination folder**. The default is `%LOCALAPPDATA%\UmbraRGBAddon\v0.2.0`; if that folder exists, setup suggests an unused name.
+4. Check the selected installation, then install. Setup accepts only the exact supported original executable and complete runtime.
+5. When installation finishes, manually start `Umbra-RGB-Addon.exe` from the destination folder. Keep its supporting files together.
 
-   ```powershell
-   python patcher.py inspect --source "C:\path\AsiaHorse UMBRA"
-   ```
+Setup bundles the Python/Tk runtime needed for its own window and patcher. It copies Umbra's runtime from your local installation and adds this project's code. The generated application keeps the vendor's bundled Python 3.8 runtime.
 
-4. Create a patched copy in a **new folder outside both the original installation and this add-on's source folder**. Its parent folder must already exist:
+Installation does not start Umbra, open the hub, send HID packets, install drivers, or download files. It never overwrites an existing destination; the original installation and SignalRGB files stay unchanged. Setup and the modified local executable are unsigned; any original executable signature is not carried over to the modified copy.
 
-   ```powershell
-   python patcher.py install --source "C:\path\AsiaHorse UMBRA" --destination "C:\path\Umbra-RGB-Addon"
-   ```
-
-5. Start `Umbra-RGB-Addon.exe` from the new destination folder. Keep its supporting files together.
-
-The patcher uses Python's standard library, copies the runtime from your local installation, and adds this project's code. Installation does not start Umbra, open the hub, send HID packets, install drivers, or download files. The original installation and SignalRGB files stay unchanged. The modified local executable is unsigned; any original executable signature is not carried over to the modified copy.
+If copying or patching fails, setup reports the error and leaves any partial destination for inspection. Retry with a new folder; remove the incomplete folder yourself when it is no longer needed.
 
 ## Set the manual count
 
@@ -102,8 +98,9 @@ Removing the folder does **not** undo a manual RGB count already saved in the hu
 | Symptom | Check |
 | --- | --- |
 | Patcher rejects `Sync_light.exe` | Use the supported original executable; patched copies and different builds do not match its hash. |
-| Runtime files cannot be found | Pass the full installed Umbra folder as `--source`, not an EXE copied on its own. |
-| Destination is rejected | Choose a new folder outside the original installation and add-on source folder, with an existing parent. |
+| Runtime files cannot be found | Select the full installed Umbra folder, not an EXE copied on its own. |
+| Destination is rejected | Choose a new folder outside the original installation and add-on source folder. The CLI also requires an existing parent folder. |
+| Installation stopped while copying | Keep the error message, inspect the partial output if needed, and retry with a new destination. |
 | Count preview works but effects do not | Restart the PC/hub after the explicit count selection; check saved target versus reported active count. |
 | Another port changes color | This release targets physical port 1; do not infer port identity from a component list in another RGB application. |
 | Fan-speed buttons do nothing | Expected: PWM is blocked in this RGB-only copy. |
@@ -112,17 +109,39 @@ For an issue, include the original app version/hash, controller VID/PID and firm
 
 ## For contributors
 
+### Install from source
+
+The command-line patcher remains available and uses only Python's standard library. It requires **Python 3.8 or newer**; it does not require Python 3.8 specifically. Download and extract the source package, close RGB applications, then run:
+
+```powershell
+python patcher.py inspect --source "C:\path\AsiaHorse UMBRA"
+python patcher.py install --source "C:\path\AsiaHorse UMBRA" --destination "C:\path\Umbra-RGB-Addon"
+```
+
+The destination must be a new folder outside both the original installation and this source folder. For the CLI, its parent folder must already exist. Start the generated application manually after installation.
+
+### Tests and builds
+
 Run the offline tests from this project folder:
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-Version 0.1.0 passes 50 offline tests under Python 3.8 and 3.14. A locally
-generated application also reached the window-ready state in USB-disabled mode.
-See [verification and its limits](VERIFICATION.md).
+Version 0.1.0 passed 50 offline tests under Python 3.8 and 3.14. A locally generated application also reached the window-ready state in USB-disabled mode. Current release checks and their limits are recorded in [VERIFICATION.md](VERIFICATION.md).
 
-The public package contains our hook, patcher, tests, documentation, readable bootstrap source, a regeneration tool, and a precompiled **Python 3.8 bootstrap belonging to this project**, stored as base64 text. The precompiled bootstrap lets a newer Python patcher prepare the vendor's Python 3.8 application without executing its code during installation. Rebuilding that bootstrap requires Python 3.8; ordinary installation does not.
+The source package contains our hook, patcher, installer, tests, documentation, readable bootstrap source, build tools, and a precompiled **Python 3.8 bootstrap belonging to this project**, stored as base64 text. The precompiled bootstrap lets a newer Python patcher prepare the vendor's Python 3.8 application without executing its code during installation. Rebuilding that bootstrap requires Python 3.8; ordinary installation does not.
+
+Build the standalone setup on Windows with **Python 3.14 x64** in a separate build environment. The output's parent folder must already exist:
+
+```powershell
+python -m pip install -r requirements-build.txt
+python tools/build_windows_installer.py --output "C:\path\Umbra-RGB-Addon-Setup-0.2.0.exe"
+```
+
+The build requirements pin PyInstaller to **6.22.3**. Setup includes its own interpreter and Tk libraries, so end users do not need a Python installation. Its Umbra icon is the separately attributed brand asset described below. It contains no original or patched Umbra executable, vendor libraries, extracted code, or firmware.
+
+To regenerate the Python 3.8 bootstrap or make the source archive:
 
 ```powershell
 py -3.8 tools/build_bootstrap38.py
@@ -147,8 +166,10 @@ Dry-run mode skips real HID enumeration. An offline test or a successful startup
 
 ## Distribution and license
 
-This repository distributes **only the add-on's own code and documentation**, under the [MIT License](LICENSE). The license does not apply to the vendor application or runtime files you supply locally.
+This repository's authored add-on code and documentation use the [MIT License](LICENSE). The standalone setup also bundles its Python/Tk runtime and packaging components under their respective licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
-Do not add original or patched Umbra executables, extracted vendor code, vendor libraries/resources, firmware images, local runtime folders, logs, or personal profiles to source releases. The generated copy is for local use and is not the source package to upload to GitHub.
+The setup and source archive include one AsiaHorse Umbra brand icon, [`assets/umbra.ico`](assets/umbra.ico), copied unchanged from the supported application's icon resource. It is **not covered by this project's MIT license**. Attribution and provenance are recorded in [the asset notice](assets/README.md); no permission to use the brand is granted by this repository's license.
+
+Apart from that icon, do not add vendor resources, original or patched Umbra executables, extracted vendor code, vendor libraries, firmware images, local runtime folders, logs, or personal profiles to source releases. The generated copy uses the application and runtime you supply locally; it is for local use and is not the source package to upload to GitHub.
 
 This is an independent community project and is not an official AsiaHorse release.
