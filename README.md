@@ -46,11 +46,11 @@ The successful local setup saved **7** before the PC restart. That is an observa
 
 ## Install
 
-Download **[Umbra-RGB-Addon-Setup-0.2.0.exe](https://github.com/TarasDzia/umbra-rgb-addon/releases/download/v0.2.0/Umbra-RGB-Addon-Setup-0.2.0.exe)** from the [0.2.0 release](https://github.com/TarasDzia/umbra-rgb-addon/releases/tag/v0.2.0). **You do not need to install Python or use PowerShell.** You still need your own installation of the supported Umbra version, with `Sync_light.exe` and its supporting runtime files.
+Download **[Umbra-RGB-Addon-Setup-0.2.1.exe](https://github.com/TarasDzia/umbra-rgb-addon/releases/download/v0.2.1/Umbra-RGB-Addon-Setup-0.2.1.exe)** from the [0.2.1 release](https://github.com/TarasDzia/umbra-rgb-addon/releases/tag/v0.2.1). **You do not need to install Python or use PowerShell.** You still need your own installation of the supported Umbra version, with `Sync_light.exe` and its supporting runtime files.
 
 1. Close Umbra and other RGB programs that control the same hub.
 2. Run the setup EXE and select the original Umbra folder containing `Sync_light.exe`.
-3. Choose a **new, separate destination folder**. The default is `%LOCALAPPDATA%\UmbraRGBAddon\v0.2.0`; if that folder exists, setup suggests an unused name.
+3. Choose a **new, separate destination folder**. The default is `%LOCALAPPDATA%\UmbraRGBAddon\v0.2.1`; if that folder exists, setup suggests an unused name.
 4. Check the selected installation, then install. Setup accepts only the exact supported original executable and complete runtime.
 5. When installation finishes, manually start `Umbra-RGB-Addon.exe` from the destination folder. Keep its supporting files together.
 
@@ -136,7 +136,7 @@ Build the standalone setup on Windows with **Python 3.14 x64** in a separate bui
 
 ```powershell
 python -m pip install -r requirements-build.txt
-python tools/build_windows_installer.py --output "C:\path\Umbra-RGB-Addon-Setup-0.2.0.exe"
+python tools/build_windows_installer.py --output "C:\path\Umbra-RGB-Addon-Setup-0.2.1.exe"
 ```
 
 The build requirements pin PyInstaller to **6.22.3**. Setup includes its own interpreter and Tk libraries, so end users do not need a Python installation. Its Umbra icon is the separately attributed brand asset described below. It contains no original or patched Umbra executable, vendor libraries, extracted code, or firmware.
@@ -162,7 +162,7 @@ $env:UMBRA_RGB_DRY_RUN = "1"
 Remove-Item Env:\UMBRA_RGB_DRY_RUN
 ```
 
-Dry-run mode skips real HID enumeration. An offline test or a successful startup is not evidence that another device/controller combination works physically.
+Dry-run mode skips real HID enumeration and blocks device construction, direct opening, reads, writes, feature reports, and delegated HID methods. It must be set before starting the process. An offline test or a successful startup is not evidence that another device/controller combination works physically.
 
 ## Distribution and license
 

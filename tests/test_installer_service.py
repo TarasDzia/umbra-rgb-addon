@@ -78,7 +78,7 @@ class InstallerServiceTests(unittest.TestCase):
         before = snapshot(self.root)
         with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local)}):
             base = service.default_destination()
-            self.assertEqual(base, local / "UmbraRGBAddon" / "v0.2.0")
+            self.assertEqual(base, local / "UmbraRGBAddon" / ("v" + patcher.VERSION))
             self.assertEqual(snapshot(self.root), before)
             base.mkdir(parents=True)
             base.with_name(base.name + "-2").write_bytes(b"occupied by a file")
@@ -90,7 +90,7 @@ class InstallerServiceTests(unittest.TestCase):
         before = snapshot(self.root)
         with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(Path, "home", return_value=self.root):
             self.assertEqual(service.default_destination(),
-                             self.root / "AppData" / "Local" / "UmbraRGBAddon" / "v0.2.0")
+                             self.root / "AppData" / "Local" / "UmbraRGBAddon" / ("v" + patcher.VERSION))
         self.assertEqual(snapshot(self.root), before)
 
     def test_validation_allows_missing_parent_without_creating_anything(self):
@@ -151,7 +151,7 @@ class InstallerServiceTests(unittest.TestCase):
         self.assertTrue((self.destination / patcher.OUTPUT_EXE).is_file())
         self.assertEqual((self.destination / "Sync_light.original.marshal").read_bytes(), ORIGINAL_MAIN)
         self.assertEqual(json.loads((self.destination / "addon-install.json").read_text()), manifest)
-        self.assertEqual(manifest["addon_version"], "0.2.0")
+        self.assertEqual(manifest["addon_version"], patcher.VERSION)
         self.assertFalse(manifest["count_written_to_hub"])
 
     def test_install_revalidates_source_before_creating_missing_parent(self):
