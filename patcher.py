@@ -16,7 +16,7 @@ import sys
 import zlib
 
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 SUPPORTED_SHA256 = "974f28ff684091520bb742cf4a24dabd726c483b08094ded871ab87f90ab5e25"
 SUPPORTED_VERSION = "V3.5.5_09.03"
 SOURCE_EXE = "Sync_light.exe"

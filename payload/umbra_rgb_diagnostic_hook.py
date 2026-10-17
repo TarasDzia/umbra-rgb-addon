@@ -85,12 +85,22 @@ def install():
 
     class RgbDevice:
         def __init__(self, *args, **kwargs):
-            self._inner = original_device(*args, **kwargs)
+            # Hiding enumeration alone is insufficient: vendor code could open
+            # a known VID/PID directly. Dry runs must never create a real HID
+            # object, even when constructor arguments would open a device.
+            self._inner = (None if os.environ.get("UMBRA_RGB_DRY_RUN") == "1"
+                           else original_device(*args, **kwargs))
             self._selected = False
             self._write_lock = threading.RLock()
             self._mode = _compat.NativeModeNormalizer()
 
+        def _require_hardware(self):
+            if (os.environ.get("UMBRA_RGB_DRY_RUN") == "1"
+                    or self._inner is None):
+                raise OSError("Hardware access is disabled in UMBRA_RGB_DRY_RUN mode")
+
         def open(self, vid, pid, *args, **kwargs):
+            self._require_hardware()
             if (vid, pid) != (0x1A86, 0xFE04):
                 raise OSError("Umbra RGB Add-on supports only the FE04 hub")
             result = self._inner.open(vid, pid, *args, **kwargs)
@@ -100,6 +110,7 @@ def install():
             return result
 
         def open_path(self, path):
+            self._require_hardware()
             if path not in {d["path"] for d in original_enumerate(0x1A86, 0xFE04)}:
                 raise OSError("Umbra RGB Add-on supports only the FE04 hub")
             result = self._inner.open_path(path)
@@ -109,6 +120,7 @@ def install():
             return result
 
         def write(self, report):
+            self._require_hardware()
             data = list(report)
             allowed = self._selected and permitted(data)
             if not allowed:
@@ -136,6 +148,7 @@ def install():
                 return result
 
         def read(self, *args, **kwargs):
+            self._require_hardware()
             result = self._inner.read(*args, **kwargs)
             if result:
                 data = list(result)
@@ -149,10 +162,12 @@ def install():
             return result
 
         def send_feature_report(self, *args, **kwargs):
+            self._require_hardware()
             event("blocked_feature_report")
             raise OSError("Feature-report writes are outside RGB-only scope")
 
         def __getattr__(self, name):
+            self._require_hardware()
             return getattr(self._inner, name)
 
     hid.device = RgbDevice

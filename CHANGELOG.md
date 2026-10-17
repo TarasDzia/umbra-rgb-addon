@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-10-17
+
+- Hardened the developer-only `UMBRA_RGB_DRY_RUN=1` mode: device construction, direct opening, reads, writes, feature reports, and delegated HID methods now fail closed without calling the hardware backend.
+- Added three fake-HID regression tests, including handles created before dry-run is enabled and prevention of profile writes.
+- Rebuilt the standalone Windows installer with the same Umbra icon and installation safeguards.
+
+Normal RGB operation and the verified hardware scope are unchanged. This is diagnostic-mode hardening, not a firmware change or a demonstrated fix for a lost manual-count setting.
+
 ## 0.2.0 — 2026-10-17
 
 - Standalone Windows setup with a graphical folder picker, compatibility check, installation progress, and completion screen.

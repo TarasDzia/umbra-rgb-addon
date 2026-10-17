@@ -83,34 +83,46 @@ class HookIntegrationTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.folder = Path(self.directory.name)
         self.devices = []
+        self.hardware_calls = []
         devices = self.devices
+        hardware_calls = self.hardware_calls
 
         class FakeHidDevice:
             def __init__(self, *args, **kwargs):
+                hardware_calls.append("device")
                 self.writes = []
                 self.reads = []
                 devices.append(self)
 
             def open(self, *args, **kwargs):
+                hardware_calls.append("open")
                 return None
 
             def open_path(self, *args, **kwargs):
+                hardware_calls.append("open_path")
                 return None
 
             def write(self, report):
+                hardware_calls.append("write")
                 self.writes.append(list(report))
                 return 65
 
             def read(self, *args, **kwargs):
+                hardware_calls.append("read")
                 return self.reads.pop(0) if self.reads else []
 
             def close(self):
+                hardware_calls.append("close")
                 return None
+
+        def enumerate_devices(*args, **kwargs):
+            hardware_calls.append("enumerate")
+            return [{"path": b"fake-fe04", "vendor_id": 0x1A86,
+                     "product_id": 0xFE04, "interface_number": 0}]
 
         hid = ModuleType("hid")
         hid.device = FakeHidDevice
-        hid.enumerate = lambda *a, **k: [{"path": b"fake-fe04", "vendor_id": 0x1A86,
-                                        "product_id": 0xFE04, "interface_number": 0}]
+        hid.enumerate = enumerate_devices
         qtcore, qtwidgets, pyside = (ModuleType(name) for name in
                                       ("PySide2.QtCore", "PySide2.QtWidgets", "PySide2"))
         qtcore.QTimer = FakeTimer
@@ -281,6 +293,55 @@ class HookIntegrationTests(unittest.TestCase):
         with self.assertRaises(OSError):
             self.transport.send_feature_report([0, 0])
         self.assertEqual(self.inner.writes, [])
+
+    def test_dry_run_never_constructs_or_enumerates_real_hid(self):
+        self.hardware_calls[:] = []
+        with patch.dict(os.environ, {"UMBRA_RGB_DRY_RUN": "1"}):
+            dry_device = self.hid.device(0x1A86, 0xFE04)
+            self.assertEqual(self.hid.enumerate(), [])
+            self.assertEqual(self.hid.enumerate(0x1A86, 0xFE04), [])
+            self.assertIsNone(dry_device._inner)
+        self.assertEqual(self.hardware_calls, [])
+
+    def test_dry_run_direct_access_and_delegated_methods_fail_closed(self):
+        self.hardware_calls[:] = []
+        with patch.dict(os.environ, {"UMBRA_RGB_DRY_RUN": "1"}):
+            dry_device = self.hid.device()
+            operations = (
+                lambda: dry_device.open(0x1A86, 0xFE04),
+                lambda: dry_device.open_path(b"fake-fe04"),
+                lambda: dry_device.write(native_report([2, 0, 0, 7])),
+                lambda: dry_device.read(64),
+                lambda: dry_device.send_feature_report([0, 0]),
+                lambda: dry_device.get_feature_report(0, 64),
+                lambda: dry_device.set_nonblocking(1),
+                lambda: dry_device.close(),
+            )
+            for operation in operations:
+                with self.assertRaisesRegex(OSError, "Hardware access is disabled"):
+                    operation()
+        # A device created for an offline run cannot later become a real handle
+        # just because an environment variable is removed.
+        with self.assertRaisesRegex(OSError, "Hardware access is disabled"):
+            dry_device.open(0x1A86, 0xFE04)
+        self.assertEqual(self.hardware_calls, [])
+        self.assertFalse((self.folder / "manual-led-profile.json").exists())
+
+    def test_dry_run_blocks_preexisting_handles_without_saving_profile(self):
+        self.hardware_calls[:] = []
+        with patch.dict(os.environ, {"UMBRA_RGB_DRY_RUN": "1"}):
+            for operation in (
+                    lambda: self.transport.open(0x1A86, 0xFE04),
+                    lambda: self.transport.open_path(b"fake-fe04"),
+                    lambda: self.transport.write(native_report([2, 0, 0, 0])),
+                    lambda: self.transport.read(64),
+                    lambda: self.transport.send_feature_report([0, 0]),
+                    lambda: self.transport.close()):
+                with self.assertRaisesRegex(OSError, "Hardware access is disabled"):
+                    operation()
+        self.assertEqual(self.hardware_calls, [])
+        self.assertEqual(self.inner.writes, [])
+        self.assertFalse((self.folder / "manual-led-profile.json").exists())
 
     def test_packet_gate_rejects_malformed_framing(self):
         valid = native_report([2, 0, 0, 12])
